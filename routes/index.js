@@ -24,7 +24,7 @@ router.get('/leaves', function(req, res) {
 
 // To show leave form of the given index
 router.get('/leaves/:id', function(req, res){
-	pool.query(`SELECT * FROM leaves where leave_id = ${req.params.id}`, (error, results) => {
+	pool.query(`SELECT * FROM leaves WHERE leave_id = ${req.params.id}`, (error, results) => {
 		if(error){
 			res.status(404).send(error.message)
 		}else{

@@ -33,35 +33,6 @@ router.get('/leaves/:id', function(req, res){
 	})
 });
 
-// To validate the put route of leave
-function isValid(data, required){
-	const error = new Error;
-	let isEmpty = false;
-
-	for(let i = 0; i < required.length; i++){
-		let value = required[i];
-		if(!(value in data)){
-			error.message = `The json is missing ${value}\n`;
-			return [false, error];
-		}
-	}
-	Object.values(data).forEach((element) => {
-			if(element === ''){
-				isEmpty = true;
-			}
-		})
-	
-	if(isEmpty){
-		error.message = 'Empty field';
-		return [false, error];
-	}
-
-	if((Date.parse(data.in_time) - Date.parse(data.out_time)) < 0){
-		error.message = 'The in time is before the out time\n';
-		return [false, error];
-	}
-	return [true, error];
-}
 
 router
 	.route("/leave")
@@ -79,15 +50,14 @@ router
 		if (!errors.isEmpty()) {
 			return res.status(400).json({ errors: errors.array() });
 		}
-		res.send('Got it');
-		// pool.query(`INSERT INTO leaves (sid, address, purpose, out_time, in_time)
-		//             VALUES ((SELECT sid from students WHERE reg_no='${data.reg_no}'), '${data.addr}', '${data.purpose}', '${data.out_time}', '${data.in_time}')RETURNING leave_id`, (error, results) =>{
-		//     if(error){
-		//         res.status(400).send(error.message)
-		//     }else{
-		//         res.status(201).send(`${results.rows[0].leave_id}\n`);
-		//     }
-		// })
+		pool.query(`INSERT INTO leaves (sid, address, purpose, out_time, in_time)
+					VALUES ((SELECT sid from students WHERE reg_no='${data.reg_no}'), '${data.addr}', '${data.purpose}', '${data.out_time}', '${data.in_time}')RETURNING leave_id`, (error, results) =>{
+			if(error){
+				res.status(400).send(error.message)
+			}else{
+				res.status(201).send(`${results.rows[0].leave_id}\n`);
+			}
+		})
 	})
 
 // To update a leave form 

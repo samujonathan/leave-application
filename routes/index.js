@@ -22,6 +22,79 @@ router.get('/leaves', function(req, res) {
 	})
 })
 
+router.get('/leave_student', function(req, res) {
+	const username = req.query.username;
+	pool.query(`SELECT * FROM leaves WHERE sid IN (SELECT sid FROM students WHERE reg_no = '${username}') ORDER BY out_time DESC LIMIT 10`, (error, results) => {
+	  if (error) {
+		res.status(500).send(error.message);
+	  } else {
+		res.status(200).json(results);
+	  }
+	});
+});
+
+router.get('/leave_proctor', function(req, res) {
+	const username = req.query.username;
+	pool.query(`SELECT leave_id, name, contact, out_time, in_time, proctor_approval as status, address, purpose FROM leaves inner join students ON students.sid=leaves.sid WHERE leaves.sid IN 
+	(SELECT sid FROM students INNER JOIN employees ON students.proctor=employees.employee_id WHERE employee_reg_no='${username}')
+	 AND proctor_approval IS null ORDER BY out_time DESC`, (error, results) => {
+	  if (error) {
+		res.status(500).send(error.message);
+	  } else {
+		res.status(200).json(results.rows);
+	  }
+	});
+});
+
+router.get('/leave_warden', function(req, res) {
+	const username = req.query.username;
+	pool.query(`SELECT leave_id, name, contact, out_time, in_time, warden_approval as status, address, purpose FROM leaves INNER JOIN students ON 
+	leaves.sid=students.sid WHERE leaves.sid IN 
+	(SELECT sid FROM students WHERE block in (SELECT hostel_id FROM hostel_admin INNER JOIN employees 
+		ON employees.employee_id=hostel_admin.employee_id WHERE employee_reg_no='${username}')) AND warden_approval IS NULL 
+		AND proctor_approval=1 ORDER BY out_time DESC`, (error, results) => {
+	  if (error) {
+		console.log(error.message);
+		res.status(500).send(error.message);
+	  } else {
+		res.status(200).json(results.rows);
+	  }
+	});
+});
+
+router.post('/proctor_approve', function(req, res) {
+	const data = req.body;
+	console.log(data?.status);
+	if(!data.status || !(data?.status == 1 || data?.status == -1)) {
+		res.status(400).send("status not mentioned");
+	} else {
+		pool.query(`UPDATE leaves SET proctor_approval=${data.status} WHERE leave_id=${data.leave_id}`, (error, results) => {
+			if (error) {
+			  res.status(500).send(error.message);
+			} else {
+			  res.status(200).json(results);
+			}
+		  });
+	}
+});
+
+router.post('/warden_approve', function(req, res) {
+	const data = req.body;
+	console.log(data?.status);
+	if(!data.status || !(data?.status == 1 || data?.status == -1)) {
+		res.status(400).send("status not mentioned");
+	} else {
+		pool.query(`UPDATE leaves SET warden_approval=${data.status} WHERE leave_id=${data.leave_id}`, (error, results) => {
+			if (error) {
+			  res.status(500).send(error.message);
+			} else {
+			  res.status(200).json(results);
+			}
+		  });
+	}
+});
+  
+
 // To show leave form of the given index
 router.get('/leaves/:id', function(req, res){
 	pool.query(`SELECT * FROM leaves WHERE leave_id = ${req.params.id}`, (error, results) => {
